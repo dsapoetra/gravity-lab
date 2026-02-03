@@ -7,15 +7,16 @@ function App() {
   const [friction, setFriction] = useState(0.5)
   const [restitution, setRestitution] = useState(0.7)
   const [isAntiGravity, setIsAntiGravity] = useState(false)
+  const [selectedColor, setSelectedColor] = useState('#22d3ee') // Default Cyan
 
   const canvasRef = useRef()
 
   return (
     // Grid Layout: Both children occupy the same cell (row 1, col 1) enabling perfect stacking
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr', gridTemplateRows: '1fr', width: '100vw', height: '100vh', overflow: 'hidden', background: '#0f172a' }}>
+    <div className="grid grid-cols-1 grid-rows-1 w-screen h-screen overflow-hidden">
 
       {/* Layer 1: Physics Canvas (Background) */}
-      <div style={{ gridArea: '1 / 1', zIndex: 0, position: 'relative' }}>
+      <div className="col-start-1 row-start-1 z-0 relative">
         <PhysicsCanvas
           ref={canvasRef}
           gravity={gravity}
@@ -27,24 +28,26 @@ function App() {
 
       {/* Layer 2: UI Overlay (Foreground) */}
       {/* pointer-events-none ensures clicks pass through to canvas where there are no buttons */}
-      <div style={{ gridArea: '1 / 1', zIndex: 100, pointerEvents: 'none', position: 'relative', padding: '24px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+      <div className="col-start-1 row-start-1 z-50 pointer-events-none relative p-6 flex flex-col justify-between">
 
         {/* Top Right: Control Panel */}
-        <div style={{ display: 'flex', justifyContent: 'flex-end', pointerEvents: 'auto' }}>
+        <div className="flex justify-end pointer-events-auto">
           <ControlPanel
             gravity={gravity} setGravity={setGravity}
             friction={friction} setFriction={setFriction}
             restitution={restitution} setRestitution={setRestitution}
             isAntiGravity={isAntiGravity} toggleAntiGravity={() => setIsAntiGravity(!isAntiGravity)}
-            onAddCircle={() => canvasRef.current?.addSphere()}
-            onAddBox={() => canvasRef.current?.addBox()}
-            onAddPolygon={() => canvasRef.current?.addPolyhedron()}
+            selectedColor={selectedColor} setSelectedColor={setSelectedColor}
+            onAddCircle={() => canvasRef.current?.addSphere(selectedColor)}
+            onAddBox={() => canvasRef.current?.addBox(selectedColor)}
+            onAddPolygon={() => canvasRef.current?.addPolyhedron(selectedColor)}
+            onAddMickey={() => canvasRef.current?.addMickey(selectedColor)}
             onClear={() => canvasRef.current?.clearWorld()}
           />
         </div>
 
         {/* Bottom Left: Footer */}
-        <div style={{ pointerEvents: 'none', color: '#64748b', fontSize: '0.875rem', userSelect: 'none' }}>
+        <div className="pointer-events-none text-slate-500 font-medium text-sm select-none bg-white/50 backdrop-blur-sm self-start px-4 py-2 rounded-full shadow-sm">
           <p>Left Click to Rotate • Right Click to Pan • Scroll to Zoom</p>
         </div>
 
