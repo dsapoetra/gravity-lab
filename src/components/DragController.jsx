@@ -1,6 +1,6 @@
-import { useThree, useFrame } from '@react-three/fiber';
-import { usePointToPointConstraint, useSphere } from '@react-three/cannon';
-import { useState, useEffect, createContext, useContext } from 'react';
+import { useFrame } from '@react-three/fiber';
+import { useState, useEffect, useMemo, useRef, createContext, useContext } from 'react';
+import { OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
 
 const DragContext = createContext(null);
@@ -8,85 +8,74 @@ const DragContext = createContext(null);
 export const useDrag = () => useContext(DragContext);
 
 export function DragController({ children }) {
-    const { camera, gl, controls } = useThree();
+    const controlsRef = useRef();
 
-    // 1. Cursor Body: A kinematic sphere that follows the mouse
-    const [cursorRef, api] = useSphere(() => ({
-        type: 'Kinematic',
-        args: [0.1],
-        position: [0, 0, 0],
-        collisionFilterGroup: 0 // Ghost object
-    }));
-
-    // 2. State for the object currently being dragged
+    // State for the object currently being dragged and its physics API
     const [targetRef, setTargetRef] = useState(null);
+    const [targetApi, setTargetApi] = useState(null);
 
-    // 3. Constraint: Connects cursor <-> target
-    const [, , constraintApi] = usePointToPointConstraint(
-        cursorRef,
-        targetRef,
-        { pivotA: [0, 0, 0], pivotB: [0, 0, 0] },
-        [targetRef]
-    );
+    // Raycasting objects for X position mapping
+    const dragPlane = useMemo(() => new THREE.Plane(new THREE.Vector3(0, 0, 1), 0), []);
+    const intersection = useMemo(() => new THREE.Vector3(), []);
 
-    // 4. Enable/Disable constraint based on target existence
-    useEffect(() => {
-        if (targetRef) {
-            constraintApi.enable();
-            if (controls) controls.enabled = false;
-        } else {
-            constraintApi.disable();
-            if (controls) controls.enabled = true;
+    // Playpen bounds
+    const FLOOR_Y = -2;
+    const CEILING_Y = 20;
+    const BOUNDS_X = 18;
+
+    // Update target position every frame
+    useFrame(({ camera, raycaster, pointer }) => {
+        if (!targetRef || !targetApi) return;
+
+        // Use raycasting for X position (natural horizontal movement)
+        raycaster.setFromCamera(pointer, camera);
+        let worldX = 0;
+        if (raycaster.ray.intersectPlane(dragPlane, intersection)) {
+            worldX = Math.max(-BOUNDS_X, Math.min(BOUNDS_X, intersection.x));
         }
-    }, [targetRef, constraintApi, controls]);
 
-    // 5. Update Cursor Position Loop
-    useFrame(({ mouse }) => {
-        // Raycasting logic to find intersection with Z=0 plane (or roughly center of scene)
-        // We want the object to feel like it's being dragged under the mouse.
+        // Use direct linear mapping for Y position (guarantees full floor-to-ceiling range)
+        // pointer.y: -1 (bottom of screen) to +1 (top of screen)
+        // Map to: FLOOR_Y (-2) to CEILING_Y (20)
+        const t = (pointer.y + 1) / 2; // normalize to 0-1
+        const worldY = FLOOR_Y + t * (CEILING_Y - FLOOR_Y);
 
-        // Create a vector based on mouse position (NDC)
-        const vec = new THREE.Vector3(mouse.x, mouse.y, 0.5);
-        vec.unproject(camera);
-
-        const dir = vec.sub(camera.position).normalize();
-
-        // Intersection with plane Z=0:
-        // P = O + t*D
-        // P.z = 0 => O.z + t*D.z = 0 => t = -O.z / D.z
-        const distance = -camera.position.z / dir.z;
-        const pos = camera.position.clone().add(dir.multiplyScalar(distance));
-
-        // Update cursor body physics position
-        api.position.set(pos.x, pos.y, pos.z);
+        targetApi.position.set(worldX, worldY, 0);
+        targetApi.velocity.set(0, 0, 0);
     });
 
-    // 6. Bind function for consumers
-    const bind = (ref) => ({
+    // Bind function with synchronous OrbitControls toggle
+    const bind = (ref, api) => ({
         onPointerDown: (e) => {
-            e.stopPropagation(); // Prevent orbit controls from picking this up (if stopPropagation works on R3F level)
-            // Also disable orbit controls explicitly if needed, but usually stopPropagation is enough
-            // if the controls are set to listen to the domElement correctly.
-
-            // Actually, preventing default might be needed for touch?
-            // e.target.setPointerCapture(e.pointerId); // Standard HTML5 pointer capture
-
+            e.stopPropagation();
+            // SYNCHRONOUS - disable controls before any async state updates
+            if (controlsRef.current) {
+                controlsRef.current.enabled = false;
+            }
             document.body.style.cursor = 'grabbing';
             setTargetRef(ref);
+            setTargetApi(api);
         },
-        onPointerUp: (e) => {
-            // e.target.releasePointerCapture(e.pointerId);
+        onPointerUp: () => {
+            if (controlsRef.current) {
+                controlsRef.current.enabled = true;
+            }
             document.body.style.cursor = 'auto';
             setTargetRef(null);
+            setTargetApi(null);
         }
     });
 
-    // Global listener to ensure we drop object if mouse goes off-screen or something
+    // Global listener for releasing drag
     useEffect(() => {
         const handleGlobalUp = () => {
+            if (controlsRef.current) {
+                controlsRef.current.enabled = true;
+            }
             setTargetRef(null);
+            setTargetApi(null);
             document.body.style.cursor = 'auto';
-        }
+        };
         window.addEventListener('pointerup', handleGlobalUp);
         return () => window.removeEventListener('pointerup', handleGlobalUp);
     }, []);
@@ -94,11 +83,7 @@ export function DragController({ children }) {
     return (
         <DragContext.Provider value={bind}>
             {children}
-            {/* Hidden cursor mesh for debug if needed, keeping it invisible for now */}
-            <mesh ref={cursorRef} visible={false}>
-                <sphereGeometry args={[0.1]} />
-                <meshBasicMaterial color="transparent" />
-            </mesh>
+            <OrbitControls ref={controlsRef} makeDefault />
         </DragContext.Provider>
     );
 }

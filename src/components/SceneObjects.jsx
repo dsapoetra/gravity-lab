@@ -7,17 +7,17 @@ import * as THREE from 'three';
 const icosahedronGeometry = new THREE.IcosahedronGeometry(1, 0);
 
 function Sphere({ position, args, color, materialProps }) {
-    const [ref] = useSphere(() => ({
+    const [ref, api] = useSphere(() => ({
         mass: 1,
-        linearDamping: 0.5,
-        angularDamping: 0.5,
+        linearDamping: 0.01,
+        angularDamping: 0.01,
         position,
         args: args, // Pass array [radius]
         material: materialProps
     }));
     const bind = useDrag();
     return (
-        <mesh ref={ref} castShadow receiveShadow {...(bind ? bind(ref) : {})}>
+        <mesh ref={ref} castShadow receiveShadow {...(bind ? bind(ref, api) : {})}>
             <sphereGeometry args={args} />
             <meshStandardMaterial color={color || "#22d3ee"} roughness={0.1} metalness={0.1} />
         </mesh>
@@ -25,17 +25,17 @@ function Sphere({ position, args, color, materialProps }) {
 }
 
 function Box({ position, args, color, materialProps }) {
-    const [ref] = useBox(() => ({
+    const [ref, api] = useBox(() => ({
         mass: 1,
-        linearDamping: 0.5,
-        angularDamping: 0.5,
+        linearDamping: 0.01,
+        angularDamping: 0.01,
         position,
         args, // [x, y, z]
         material: materialProps
     }));
     const bind = useDrag();
     return (
-        <mesh ref={ref} castShadow receiveShadow {...(bind ? bind(ref) : {})}>
+        <mesh ref={ref} castShadow receiveShadow {...(bind ? bind(ref, api) : {})}>
             <boxGeometry args={args} />
             <meshStandardMaterial color={color || "#818cf8"} roughness={0.1} metalness={0.1} />
         </mesh>
@@ -54,10 +54,10 @@ function Polyhedron({ position, args, color, materialProps }) {
         return { vertices: [], faces: [] };
     }, [args]);
 
-    const [ref] = useSphere(() => ({
+    const [ref, api] = useSphere(() => ({
         mass: 1,
-        linearDamping: 0.5,
-        angularDamping: 0.5,
+        linearDamping: 0.01,
+        angularDamping: 0.01,
         position,
         args: args, // Pass array [radius]
         material: materialProps
@@ -65,7 +65,7 @@ function Polyhedron({ position, args, color, materialProps }) {
     const bind = useDrag();
 
     return (
-        <mesh ref={ref} castShadow receiveShadow {...(bind ? bind(ref) : {})}>
+        <mesh ref={ref} castShadow receiveShadow {...(bind ? bind(ref, api) : {})}>
             <icosahedronGeometry args={args} />
             <meshStandardMaterial color={color || "#a78bfa"} roughness={0.1} metalness={0.1} />
         </mesh>
@@ -73,10 +73,10 @@ function Polyhedron({ position, args, color, materialProps }) {
 }
 
 function Mickey({ position, color, materialProps }) {
-    const [ref] = useCompoundBody(() => ({
+    const [ref, api] = useCompoundBody(() => ({
         mass: 1,
-        linearDamping: 0.5,
-        angularDamping: 0.5,
+        linearDamping: 0.01,
+        angularDamping: 0.01,
         position,
         shapes: [
             { type: 'Sphere', args: [0.6], position: [0, 0, 0] }, // Head
@@ -91,7 +91,7 @@ function Mickey({ position, color, materialProps }) {
     const baseColor = color || "#fcd34d";
 
     return (
-        <group ref={ref} {...(bind ? bind(ref) : {})}>
+        <group ref={ref} {...(bind ? bind(ref, api) : {})}>
             {/* Head */}
             <mesh castShadow receiveShadow>
                 <sphereGeometry args={[0.6]} />

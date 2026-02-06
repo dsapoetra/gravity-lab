@@ -1,7 +1,7 @@
 import { Canvas } from '@react-three/fiber';
 import { Physics, usePlane } from '@react-three/cannon';
-import { OrbitControls, Environment, Sky } from '@react-three/drei';
-import { forwardRef, useImperativeHandle, useState, useEffect } from 'react';
+import { Environment, Sky } from '@react-three/drei';
+import { forwardRef, useImperativeHandle, useState } from 'react';
 import SceneObjects from './SceneObjects';
 import { DragController } from './DragController';
 
@@ -17,7 +17,7 @@ const PhysicsCanvas = forwardRef(({ gravity, friction, restitution, isAntiGravit
       setObjects(prev => [...prev, {
         id: Math.random(),
         type: 'sphere',
-        position: [Math.random() * 4 - 2, 10, Math.random() * 4 - 2],
+        position: [Math.random() * 4 - 2, 18, Math.random() * 4 - 2],
         args: [0.5 + Math.random() * 0.5], // radius
         color: color
       }]);
@@ -26,7 +26,7 @@ const PhysicsCanvas = forwardRef(({ gravity, friction, restitution, isAntiGravit
       setObjects(prev => [...prev, {
         id: Math.random(),
         type: 'box',
-        position: [Math.random() * 4 - 2, 10, Math.random() * 4 - 2],
+        position: [Math.random() * 4 - 2, 18, Math.random() * 4 - 2],
         args: [1 + Math.random(), 1 + Math.random(), 1 + Math.random()], // w, h, d
         color: color
       }]);
@@ -35,7 +35,7 @@ const PhysicsCanvas = forwardRef(({ gravity, friction, restitution, isAntiGravit
       setObjects(prev => [...prev, {
         id: Math.random(),
         type: 'polyhedron',
-        position: [Math.random() * 4 - 2, 10, Math.random() * 4 - 2],
+        position: [Math.random() * 4 - 2, 18, Math.random() * 4 - 2],
         args: [0.8 + Math.random() * 0.6], // radius/scale
         color: color
       }]);
@@ -44,7 +44,7 @@ const PhysicsCanvas = forwardRef(({ gravity, friction, restitution, isAntiGravit
       setObjects(prev => [...prev, {
         id: Math.random(),
         type: 'mickey',
-        position: [Math.random() * 4 - 2, 10, Math.random() * 4 - 2],
+        position: [Math.random() * 4 - 2, 18, Math.random() * 4 - 2],
         args: [],
         color: color
       }]);
@@ -72,21 +72,19 @@ const PhysicsCanvas = forwardRef(({ gravity, friction, restitution, isAntiGravit
           />
 
           {/* Floor & Walls */}
-          <Floor friction={friction} restitution={restitution} />
-          <Walls friction={friction} restitution={restitution} />
+          <Floor friction={friction} />
+          <Walls friction={friction} />
         </DragController>
       </Physics>
-
-      <OrbitControls makeDefault />
     </Canvas>
   );
 });
 
-function Floor({ friction, restitution }) {
+function Floor({ friction }) {
   const [ref] = usePlane(() => ({
     rotation: [-Math.PI / 2, 0, 0],
     position: [0, -2, 0],
-    material: { friction, restitution }
+    material: { friction, restitution: 1.0 }
   }));
 
   return (
@@ -98,8 +96,8 @@ function Floor({ friction, restitution }) {
   );
 }
 
-function Walls({ friction, restitution }) {
-  const wallMaterial = { friction, restitution };
+function Walls({ friction }) {
+  const wallMaterial = { friction, restitution: 1.0 };
 
   // 4 Walls creating a 40x40 box, centered at 0,0
   // Left Wall (x = -20)
